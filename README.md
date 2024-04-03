@@ -1,8 +1,8 @@
 # blogspot
 
-Compiles a blogger/blogspot blog into a standalone html file and PDF.
+Compiles a Blogger blog into a standalone html file and PDF.
 
-Currently (as far as I'm aware) it only works for blogger/blogspot sites with the Contempo theme and an index page.
+Currently (as far as I'm aware) it only works for Blogger sites with the Contempo theme and an index page.
 
 ## Usage
 
@@ -17,3 +17,5 @@ python3 blogspot_fetch https://myblog.blogspot.com/p/index.html
 ```
 
 This will output the blog to `myblog.html` and `myblog.pdf`.
+
+It just copies the default Blogger styling, which can be modified in `style.html`. It terms of organization, it only adds a table of contents.
