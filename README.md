@@ -15,3 +15,5 @@ E.g.
 ```bash
 python3 blogspot_fetch https://myblog.blogspot.com/p/index.html
 ```
+
+This will output the blog to `myblog.html` and `myblog.pdf`.
