@@ -13,7 +13,7 @@ python3 blogspot_fetch.py <blog_index_url>
 E.g.
 
 ```bash
-python3 blogspot_fetch https://myblog.blogspot.com/p/index.html
+python3 blogspot_fetch.py https://myblog.blogspot.com/p/index.html
 ```
 
 This will output the blog to `myblog.html` and `myblog.pdf`.
