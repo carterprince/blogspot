@@ -1,6 +1,6 @@
 # blogspot
 
-Compiles a Blogger blog into a standalone html file and PDF.
+Compiles a Blogger blog into a standalone html file and a PDF.
 
 Currently (as far as I'm aware) it only works for Blogger sites with the Contempo theme and a publicly-accessible index page.
 
