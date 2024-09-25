@@ -2,10 +2,12 @@
 
 import requests
 import sys
+import time
 from bs4 import BeautifulSoup
 import pdfkit
 import os
 from urllib.parse import urljoin
+import re
 
 def download_image(url, filename):
     response = requests.get(url)
@@ -28,6 +30,15 @@ def generate_pdf(html_file, pdf_file):
     print(f"Generating {pdf_file}...")
     pdfkit.from_file(html_file, pdf_file, options=options)
     print(f"Generated {pdf_file}")
+
+def modify_href(href):
+    pattern = r'https://([^.]+)\.blogspot\.com/\d{4}/\d{2}/([^.]+)\.html'
+    match = re.match(pattern, href)
+    if match:
+        return f"#{match.group(2)}"
+    return href
+
+
 
 def main():
     if len(sys.argv) != 2:
@@ -62,21 +73,26 @@ def main():
     blog_author = soup.select_one('#Profile1 > div > div > div > dl > dt > a').text
 
     article_data = []
-    url_to_slug = {}
 
     output_html = ""
     separator_html = "<div class=\"page-separator\"></div>\n"
 
-    for link in links:
+    os.makedirs("articles", exist_ok=True)
+
+    for i, link in enumerate(links):
         link_response = requests.get(link)
-        article_slug = link.split("/")[-1].replace(".html", "")
-        url_to_slug[link] = article_slug
 
         if "Sensitive Content Warning" in link_response.text:
             print(f"Unable to fetch {link} (sensitive content)")
             continue
-        else:
-            print(f"Fetched {link}")
+
+        while link_response.status_code != 200:
+            link_response = requests.get(link)
+            time.sleep(1)
+
+        print(f"Fetched {link}")
+
+        article_slug = link.split("/")[-1].replace(".html", "")
 
         link_soup = BeautifulSoup(link_response.text, "html.parser")
 
@@ -95,13 +111,19 @@ def main():
             post_bottom.decompose()
 
         desired_element = link_soup.select_one("#Blog1 > div > article > div > div")
-        if desired_element:
-            for a in desired_element.find_all('a', href=True):
-                if a['href'] in url_to_slug:
-                    a['href'] = f"#{url_to_slug[a['href']]}"
-                    a.attrs.pop('target', None)
-            output_html += str(desired_element) + "\n"
-            output_html += separator_html
+        for a in desired_element.find_all('a', href=True):
+            a['href'] = modify_href(a['href'])
+            a.attrs.pop('target', None)
+        article_text = str(desired_element)
+        article_filename = f"{i:03}_{article_slug}.html"
+
+        # Write article to its own file
+        with open(f"articles/{article_filename}", "w", encoding="utf-8") as article_file:
+            article_file.write(article_text)
+
+        output_html += article_text + "\n" + separator_html
+
+        time.sleep(0.01)
 
     with open("style.html", "r") as file:
         style_html = file.read()
@@ -115,7 +137,7 @@ def main():
     </div>
     """
 
-    toc_html = "<h3 class=\"post-title entry-title\">Table of Contents</h3>\n<ul>\n"
+    toc_html = "<h3 class=\"post-title entry-title\">Contents</h3>\n<ul>\n"
     for article in article_data:
         toc_html += f'<li><a href="#{article["slug"]}">{article["title"]}</a></li>\n'
     toc_html += "</ul>" + separator_html
