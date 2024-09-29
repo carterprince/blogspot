@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import re
 
 def download_image(url, filename):
-    response = requests.get(url)
+    response = requests.get(url, headers=headers)
     if response.status_code == 200:
         with open(filename, 'wb') as f:
             f.write(response.content)
@@ -31,14 +31,18 @@ def generate_pdf(html_file, pdf_file):
     pdfkit.from_file(html_file, pdf_file, options=options)
     print(f"Generated {pdf_file}")
 
-def modify_href(href):
+def href_to_slug(href):
     pattern = r'https://([^.]+)\.blogspot\.com/\d{4}/\d{2}/([^.]+)\.html'
     match = re.match(pattern, href)
     if match:
-        return f"#{match.group(2)}"
+        return f"{match.group(2)}"
     return href
 
-
+# Define the headers
+headers = {
+    'cookie': 'INTERSTITIAL=ABqL8_iGQZSaD27QiqvN_Gh9XHR__DzvtqySiSnl34_F9HNjEcMtC7jZ-_rT7MM',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+}
 
 def main():
     if len(sys.argv) != 2:
@@ -55,9 +59,10 @@ def main():
             generate_pdf(html_file, f"{blog_slug}.pdf")
             return
 
-    response = requests.get(url)
+    response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser")
     links = [link["href"] for link in soup.select(".post-body > p > a")]
+    links = links[::-1] # reverse
     blog_title = soup.select_one('#Header1 > div > div > h1 > a').text
     blog_image_url = soup.select_one('#Profile1 > div > div > a > img')['src']
     
@@ -80,14 +85,14 @@ def main():
     os.makedirs("articles", exist_ok=True)
 
     for i, link in enumerate(links):
-        link_response = requests.get(link)
+        link_response = requests.get(link, headers=headers)
 
         if "Sensitive Content Warning" in link_response.text:
             print(f"Unable to fetch {link} (sensitive content)")
             continue
 
         while link_response.status_code != 200:
-            link_response = requests.get(link)
+            link_response = requests.get(link, headers=headers)
             time.sleep(1)
 
         print(f"Fetched {link}")
@@ -112,7 +117,7 @@ def main():
 
         desired_element = link_soup.select_one("#Blog1 > div > article > div > div")
         for a in desired_element.find_all('a', href=True):
-            a['href'] = modify_href(a['href'])
+            a['href'] = "#" + href_to_slug(a['href'])
             a.attrs.pop('target', None)
         article_text = str(desired_element)
         article_filename = f"{i:03}_{article_slug}.html"
@@ -122,8 +127,6 @@ def main():
             article_file.write(article_text)
 
         output_html += article_text + "\n" + separator_html
-
-        time.sleep(0.01)
 
     with open("style.html", "r") as file:
         style_html = file.read()
